@@ -1,8 +1,11 @@
 package container
 
-import "github.com/spf13/cobra"
+import (
+	"github.com/DeJeune/sudocker/cmd"
+	"github.com/spf13/cobra"
+)
 
-func NewContainerCommand() *cobra.Command {
+func NewContainerCommand(sudockerCli *cmd.SudockerCli) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "container",
 		Short: "Manage containers",
@@ -12,14 +15,15 @@ func NewContainerCommand() *cobra.Command {
 		},
 	}
 	cmd.AddCommand(
-		NewRunCommand(),
-		NewExecCommand(),
-		NewKillCommand(),
-		NewPsCommand(),
-		NewStartCommand(),
-		NewStopCommand(),
-		NewRestartCommand(),
-		NewRmCommand(),
+		NewCreateCommand(sudockerCli),
+		NewRunCommand(sudockerCli),
+		NewExecCommand(sudockerCli),
+		NewKillCommand(sudockerCli),
+		NewPsCommand(sudockerCli),
+		NewStartCommand(sudockerCli),
+		NewStopCommand(sudockerCli),
+		NewRestartCommand(sudockerCli),
+		NewRmCommand(sudockerCli),
 	)
 	return cmd
 }

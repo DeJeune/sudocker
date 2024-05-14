@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/DeJeune/sudocker/cli"
+	"github.com/DeJeune/sudocker/cmd"
 	"github.com/spf13/cobra"
 )
 
@@ -16,7 +17,7 @@ type execOptions struct {
 	privileged  bool
 }
 
-func NewExecCommand() *cobra.Command {
+func NewExecCommand(sudockerCli *cmd.SudockerCli) *cobra.Command {
 	var options execOptions
 
 	cmd := &cobra.Command{

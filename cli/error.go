@@ -19,7 +19,7 @@ func (errList Errors) Error() string {
 	return strings.Join(out, ", ")
 }
 
-// StatusError reports an unsuccessful exit by a command.
+// StatusError 打印一个不成功的退出
 type StatusError struct {
 	Status     string
 	StatusCode int

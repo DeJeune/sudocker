@@ -2,6 +2,7 @@ package container
 
 import (
 	"github.com/DeJeune/sudocker/cli"
+	"github.com/DeJeune/sudocker/cmd"
 	"github.com/spf13/cobra"
 )
 
@@ -15,7 +16,7 @@ type startOptions struct {
 	containers []string
 }
 
-func NewStartCommand() *cobra.Command {
+func NewStartCommand(sudockerCli *cmd.SudockerCli) *cobra.Command {
 	var opts startOptions
 
 	cmd := &cobra.Command{

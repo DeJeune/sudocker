@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/DeJeune/sudocker/cli"
+	"github.com/DeJeune/sudocker/cmd"
 	"github.com/spf13/cobra"
 )
 
@@ -15,7 +16,7 @@ type rmOptions struct {
 	containers []string
 }
 
-func NewRmCommand() *cobra.Command {
+func NewRmCommand(sudockerCli *cmd.SudockerCli) *cobra.Command {
 
 	var opts rmOptions
 

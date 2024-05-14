@@ -2,6 +2,7 @@ package container
 
 import (
 	"github.com/DeJeune/sudocker/cli"
+	"github.com/DeJeune/sudocker/cmd"
 	"github.com/spf13/cobra"
 )
 
@@ -11,8 +12,7 @@ type killOptions struct {
 	containers []string
 }
 
-// NewKillCommand creates a new cobra.Command for `docker kill`
-func NewKillCommand() *cobra.Command {
+func NewKillCommand(sudockerCli *cmd.SudockerCli) *cobra.Command {
 	var opts killOptions
 
 	cmd := &cobra.Command{

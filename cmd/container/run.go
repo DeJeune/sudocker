@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/DeJeune/sudocker/cli"
+	"github.com/DeJeune/sudocker/cmd"
 	"github.com/spf13/cobra"
 )
 
@@ -14,7 +15,7 @@ type runOption struct {
 	detachKeys string
 }
 
-func NewRunCommand() *cobra.Command {
+func NewRunCommand(sudockerCli *cmd.SudockerCli) *cobra.Command {
 
 	runCmd := &cobra.Command{
 		Use:     "run [OPTIONS] IMAGE [COMMAND] [ARG...]",

@@ -2,6 +2,7 @@ package container
 
 import (
 	"github.com/DeJeune/sudocker/cli"
+	"github.com/DeJeune/sudocker/cmd"
 	"github.com/spf13/cobra"
 )
 
@@ -12,7 +13,7 @@ type stopOptions struct {
 	containers []string
 }
 
-func NewStopCommand() *cobra.Command {
+func NewStopCommand(sudockerCli *cmd.SudockerCli) *cobra.Command {
 	var opts stopOptions
 
 	cmd := &cobra.Command{

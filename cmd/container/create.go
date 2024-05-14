@@ -1,12 +1,13 @@
-package image
+package container
 
 import (
 	"fmt"
 
+	"github.com/DeJeune/sudocker/cmd"
 	"github.com/spf13/cobra"
 )
 
-func NewCreateCommand() *cobra.Command {
+func NewCreateCommand(sudockerCli *cmd.SudockerCli) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "create",
 		Short: "Create a new container",

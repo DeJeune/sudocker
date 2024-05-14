@@ -2,6 +2,7 @@ package container
 
 import (
 	"github.com/DeJeune/sudocker/cli"
+	"github.com/DeJeune/sudocker/cmd"
 	"github.com/spf13/cobra"
 )
 
@@ -12,7 +13,7 @@ type restartOptions struct {
 	containers []string
 }
 
-func NewRestartCommand() *cobra.Command {
+func NewRestartCommand(sudockerCli *cmd.SudockerCli) *cobra.Command {
 	var opts restartOptions
 
 	cmd := &cobra.Command{

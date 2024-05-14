@@ -2,6 +2,7 @@ package container
 
 import (
 	"github.com/DeJeune/sudocker/cli"
+	"github.com/DeJeune/sudocker/cmd"
 	"github.com/spf13/cobra"
 )
 
@@ -15,7 +16,7 @@ type psOptions struct {
 	format  string
 }
 
-func NewPsCommand() *cobra.Command {
+func NewPsCommand(sudockerCli *cmd.SudockerCli) *cobra.Command {
 	options := psOptions{}
 
 	cmd := &cobra.Command{
