@@ -19,11 +19,12 @@ func setupMount() error {
 		return err
 	}
 	logrus.Infof("Current location is %s", pwd)
-	syscall.Mount("", "/", "", syscall.MS_PRIVATE|syscall.MS_REC, "")
-	// err = pivotRoot(pwd)
-	// if err != nil {
-	// 	return errors.Errorf("pivotRoot failed, detail: %v", err)
-	// }
+	if err = syscall.Mount("", "/", "", syscall.MS_PRIVATE|syscall.MS_REC, ""); err != nil {
+		return err
+	}
+	if err = pivotRoot(pwd); err != nil {
+		return err
+	}
 	// 挂载/proc文件系统
 	defaultMountFlags := syscall.MS_NOEXEC | syscall.MS_NOSUID | syscall.MS_NODEV
 	if err = syscall.Mount("proc", "/proc", "proc", uintptr(defaultMountFlags), ""); err != nil {
@@ -32,7 +33,9 @@ func setupMount() error {
 	// 由于前面 pivotRoot 切换了 rootfs，因此这里重新 mount 一下 /dev 目录
 	// tmpfs 是基于 件系 使用 RAM、swap 分区来存储。
 	// 不挂载 /dev，会导致容器内部无法访问和使用许多设备，这可能导致系统无法正常工作
-	syscall.Mount("tmpfs", "/dev", "tmpfs", syscall.MS_NOSUID|syscall.MS_STRICTATIME, "mode=755")
+	if err = syscall.Mount("tmpfs", "/dev", "tmpfs", syscall.MS_NOSUID|syscall.MS_STRICTATIME, "mode=755"); err != nil {
+		return err
+	}
 	return nil
 }
 

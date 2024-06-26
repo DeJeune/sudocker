@@ -28,5 +28,6 @@ func NewParentProcess(ctx context.Context, cli cmd.Cli, config *config.Config) (
 		cmd.Stderr = cli.Err()
 	}
 	cmd.ExtraFiles = []*os.File{readPipe}
+	cmd.Dir = "/root/busybox"
 	return cmd, writePipe
 }

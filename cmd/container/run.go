@@ -51,7 +51,6 @@ func NewRunCommand(sudockerCli *cmd.SudockerCli) *cobra.Command {
 
 func runRun(ctx context.Context, sudockerCli cmd.Cli, flags *pflag.FlagSet, ropts *runOptions, copts *containerOptions) error {
 	containerConfig, err := parse(flags, copts)
-	fmt.Println(containerConfig.Config.Cmd)
 	if err != nil {
 		reportError(sudockerCli.Err(), "run", err.Error(), true)
 		return cli.StatusError{StatusCode: 125}
