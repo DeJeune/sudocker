@@ -1,4 +1,4 @@
-package cgroups
+package fs2
 
 import (
 	"bytes"
@@ -7,6 +7,7 @@ import (
 	"strconv"
 
 	"github.com/DeJeune/sudocker/runtime/config"
+	"github.com/DeJeune/sudocker/runtime/pkg/cgroups"
 )
 
 func isIoSet(r *config.Resources) bool {
@@ -38,7 +39,7 @@ func setIo(dirPath string, r *config.Resources) error {
 	var bfq *os.File
 	if r.BlkioWeight != 0 || len(r.BlkioWeightDevice) > 0 {
 		var err error
-		bfq, err = OpenFile(dirPath, "io.bfq.weight", os.O_RDWR)
+		bfq, err = cgroups.OpenFile(dirPath, "io.bfq.weight", os.O_RDWR)
 		if err == nil {
 			defer bfq.Close()
 		} else if !os.IsNotExist(err) {
@@ -52,8 +53,8 @@ func setIo(dirPath string, r *config.Resources) error {
 				return err
 			}
 		} else {
-			v := ConvertBlkIOToIOWeightValue(r.BlkioWeight)
-			if err := WriteFile(dirPath, "io.weight", strconv.FormatUint(v, 10)); err != nil {
+			v := cgroups.ConvertBlkIOToIOWeightValue(r.BlkioWeight)
+			if err := cgroups.WriteFile(dirPath, "io.weight", strconv.FormatUint(v, 10)); err != nil {
 				return err
 			}
 		}
@@ -68,25 +69,25 @@ func setIo(dirPath string, r *config.Resources) error {
 	}
 
 	for _, td := range r.BlkioThrottleReadBpsDevice {
-		if err := WriteFile(dirPath, "io.max", td.StringName("rbps")); err != nil {
+		if err := cgroups.WriteFile(dirPath, "io.max", td.StringName("rbps")); err != nil {
 			return err
 		}
 	}
 
 	for _, td := range r.BlkioThrottleWriteBpsDevice {
-		if err := WriteFile(dirPath, "io.max", td.StringName("wbps")); err != nil {
+		if err := cgroups.WriteFile(dirPath, "io.max", td.StringName("wbps")); err != nil {
 			return err
 		}
 	}
 
 	for _, td := range r.BlkioThrottleReadIOPSDevice {
-		if err := WriteFile(dirPath, "io.max", td.StringName("riops")); err != nil {
+		if err := cgroups.WriteFile(dirPath, "io.max", td.StringName("riops")); err != nil {
 			return err
 		}
 	}
 
 	for _, td := range r.BlkioThrottleWriteIOPSDevice {
-		if err := WriteFile(dirPath, "io.max", td.StringName("wiops")); err != nil {
+		if err := cgroups.WriteFile(dirPath, "io.max", td.StringName("wiops")); err != nil {
 			return err
 		}
 	}

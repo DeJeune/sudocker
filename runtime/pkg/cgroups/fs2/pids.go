@@ -1,6 +1,9 @@
-package cgroups
+package fs2
 
-import "github.com/DeJeune/sudocker/runtime/config"
+import (
+	"github.com/DeJeune/sudocker/runtime/config"
+	"github.com/DeJeune/sudocker/runtime/pkg/cgroups"
+)
 
 func isPidsSet(r *config.Resources) bool {
 	return r.PidsLimit != 0
@@ -12,7 +15,7 @@ func setPids(dirPath string, r *config.Resources) error {
 	}
 
 	if val := numToStr(r.PidsLimit); val != "" {
-		if err := WriteFile(dirPath, "pids.max", val); err != nil {
+		if err := cgroups.WriteFile(dirPath, "pids.max", val); err != nil {
 			return err
 		}
 	}

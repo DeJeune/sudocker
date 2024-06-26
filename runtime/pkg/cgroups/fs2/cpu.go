@@ -1,10 +1,11 @@
-package cgroups
+package fs2
 
 import (
 	"errors"
 	"strconv"
 
 	"github.com/DeJeune/sudocker/runtime/config"
+	"github.com/DeJeune/sudocker/runtime/pkg/cgroups"
 	"golang.org/x/sys/unix"
 )
 
@@ -23,13 +24,13 @@ func setCpu(dirPath string, r *config.Resources) error {
 		return nil
 	}
 	if r.CpuIdle != nil {
-		if err := WriteFile(dirPath, "cpu.idle", strconv.FormatInt(*r.CpuIdle, 10)); err != nil {
+		if err := cgroups.WriteFile(dirPath, "cpu.idle", strconv.FormatInt(*r.CpuIdle, 10)); err != nil {
 			return err
 		}
 	}
 
 	if r.CpuWeight != 0 {
-		if err := WriteFile(dirPath, "cpu.weight", strconv.FormatUint(r.CpuWeight, 10)); err != nil {
+		if err := cgroups.WriteFile(dirPath, "cpu.weight", strconv.FormatUint(r.CpuWeight, 10)); err != nil {
 			return err
 		}
 	}
@@ -37,7 +38,7 @@ func setCpu(dirPath string, r *config.Resources) error {
 	var burst string
 	if r.CpuBurst != nil {
 		burst = strconv.FormatUint(*r.CpuBurst, 10)
-		if err := WriteFile(dirPath, "cpu.max.burst", burst); err != nil {
+		if err := cgroups.WriteFile(dirPath, "cpu.max.burst", burst); err != nil {
 			if !errors.Is(err, unix.EINVAL) || r.CpuQuota == 0 {
 				return err
 			}
@@ -58,11 +59,11 @@ func setCpu(dirPath string, r *config.Resources) error {
 			period = 100000
 		}
 		str += " " + strconv.FormatUint(period, 10)
-		if err := WriteFile(dirPath, "cpu.max", str); err != nil {
+		if err := cgroups.WriteFile(dirPath, "cpu.max", str); err != nil {
 			return err
 		}
 		if burst != "" {
-			if err := WriteFile(dirPath, "cpu.max.burst", burst); err != nil {
+			if err := cgroups.WriteFile(dirPath, "cpu.max.burst", burst); err != nil {
 				return err
 			}
 		}

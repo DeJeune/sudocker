@@ -8,6 +8,7 @@ import (
 	"github.com/DeJeune/sudocker/cli"
 	"github.com/DeJeune/sudocker/cmd"
 	"github.com/DeJeune/sudocker/cmd/cmds"
+	"github.com/sirupsen/logrus"
 )
 
 func main() {
@@ -16,6 +17,7 @@ func main() {
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 	}
+	logrus.SetOutput(sudockerCli.Err())
 	if err := cmds.RunSudocker(ctx, sudockerCli); err != nil {
 		if sterr, ok := err.(cli.StatusError); ok {
 			if sterr.Status != "" {

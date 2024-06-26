@@ -5,13 +5,13 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/docker/docker/api/types/blkiodev"
+	"github.com/DeJeune/sudocker/runtime/pkg/devices"
 	"github.com/docker/go-units"
 )
 
-type ValidatorThrottleFctType func(val string) (*blkiodev.ThrottleDevice, error)
+type ValidatorThrottleFctType func(val string) (*devices.ThrottleDevice, error)
 
-func ValidateThrottleBpsDevice(val string) (*blkiodev.ThrottleDevice, error) {
+func ValidateThrottleBpsDevice(val string) (*devices.ThrottleDevice, error) {
 	k, v, ok := strings.Cut(val, ":")
 	if !ok || k == "" {
 		return nil, fmt.Errorf("bad format: %s", val)
@@ -28,13 +28,13 @@ func ValidateThrottleBpsDevice(val string) (*blkiodev.ThrottleDevice, error) {
 		return nil, fmt.Errorf("invalid rate for device: %s. The correct format is <device-path>:<number>[<unit>]. Number must be a positive integer. Unit is optional and can be kb, mb, or gb", val)
 	}
 
-	return &blkiodev.ThrottleDevice{
+	return &devices.ThrottleDevice{
 		Path: k,
 		Rate: uint64(rate),
 	}, nil
 }
 
-func ValidateThrottleIOpsDevice(val string) (*blkiodev.ThrottleDevice, error) {
+func ValidateThrottleIOpsDevice(val string) (*devices.ThrottleDevice, error) {
 	k, v, ok := strings.Cut(val, ":")
 	if !ok || k == "" {
 		return nil, fmt.Errorf("bad format: %s", val)
@@ -48,23 +48,23 @@ func ValidateThrottleIOpsDevice(val string) (*blkiodev.ThrottleDevice, error) {
 		return nil, fmt.Errorf("invalid rate for device: %s. The correct format is <device-path>:<number>. Number must be a positive integer", val)
 	}
 
-	return &blkiodev.ThrottleDevice{Path: k, Rate: rate}, nil
+	return &devices.ThrottleDevice{Path: k, Rate: rate}, nil
 }
 
 type ThrottledeviceOpt struct {
-	values    []*blkiodev.ThrottleDevice
+	values    []*devices.ThrottleDevice
 	validator ValidatorThrottleFctType
 }
 
 func NewThrottledeviceOpt(validator ValidatorThrottleFctType) ThrottledeviceOpt {
 	return ThrottledeviceOpt{
-		values:    []*blkiodev.ThrottleDevice{},
+		values:    []*devices.ThrottleDevice{},
 		validator: validator,
 	}
 }
 
 func (opt *ThrottledeviceOpt) Set(val string) error {
-	var value *blkiodev.ThrottleDevice
+	var value *devices.ThrottleDevice
 	if opt.validator != nil {
 		v, err := opt.validator(val)
 		if err != nil {
@@ -85,8 +85,8 @@ func (opt *ThrottledeviceOpt) String() string {
 	return fmt.Sprintf("%v", out)
 }
 
-func (opt *ThrottledeviceOpt) GetList() []*blkiodev.ThrottleDevice {
-	out := make([]*blkiodev.ThrottleDevice, 0, len(opt.values))
+func (opt *ThrottledeviceOpt) GetList() []*devices.ThrottleDevice {
+	out := make([]*devices.ThrottleDevice, 0, len(opt.values))
 	copy(out, opt.values)
 	return out
 }

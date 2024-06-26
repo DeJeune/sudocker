@@ -1,5 +1,13 @@
 package config
 
+type FreezerState string
+
+const (
+	Undefined FreezerState = ""
+	Frozen    FreezerState = "FROZEN"
+	Thawed    FreezerState = "THAWED"
+)
+
 type Cgroup struct {
 	// cgroup名称
 	Name string `json:"name,omitempty"`
@@ -27,7 +35,7 @@ type Resources struct {
 	Memory                       int64             `json:"memory"`
 	MemoryReservation            int64             `json:"memory_reservation"`
 	MemorySwap                   int64             `json:"memory_swap"`
-	MemorySwappiness             *uint64           `json:"memory_swappiness"`
+	MemorySwappiness             *int64            `json:"memory_swappiness"`
 	IoMax                        string            `json:"IoMax"`
 	IoWeight                     string            `json:"IoWeight"`
 	IoStat                       string            `json:"IoStat"`

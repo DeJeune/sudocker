@@ -5,24 +5,24 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/docker/docker/api/types/blkiodev"
+	"github.com/DeJeune/sudocker/runtime/pkg/devices"
 )
 
 // 定义了一个validator函数
-type ValidatorWeightFctType func(val string) (*blkiodev.WeightDevice, error)
+type ValidatorWeightFctType func(val string) (*devices.WeightDevice, error)
 
 type WeightdeviceOpt struct {
-	values    []*blkiodev.WeightDevice
+	values    []*devices.WeightDevice
 	validator ValidatorWeightFctType
 }
 
 func NewWeightdeviceOpt(validator ValidatorWeightFctType) WeightdeviceOpt {
 	return WeightdeviceOpt{
-		values:    []*blkiodev.WeightDevice{},
+		values:    []*devices.WeightDevice{},
 		validator: validator,
 	}
 }
-func ValidateWeightDevice(val string) (*blkiodev.WeightDevice, error) {
+func ValidateWeightDevice(val string) (*devices.WeightDevice, error) {
 	k, v, ok := strings.Cut(val, ":")
 	if !ok || k == "" {
 		return nil, fmt.Errorf("bad format: %s", val)
@@ -39,7 +39,7 @@ func ValidateWeightDevice(val string) (*blkiodev.WeightDevice, error) {
 		return nil, fmt.Errorf("invalid weight for device: %s", val)
 	}
 
-	return &blkiodev.WeightDevice{
+	return &devices.WeightDevice{
 		Path:   k,
 		Weight: uint16(weight),
 	}, nil
@@ -47,7 +47,7 @@ func ValidateWeightDevice(val string) (*blkiodev.WeightDevice, error) {
 
 // Set validates a WeightDevice and sets its name as a key in WeightdeviceOpt
 func (opt *WeightdeviceOpt) Set(val string) error {
-	var value *blkiodev.WeightDevice
+	var value *devices.WeightDevice
 	if opt.validator != nil {
 		v, err := opt.validator(val)
 		if err != nil {
@@ -70,7 +70,7 @@ func (opt *WeightdeviceOpt) String() string {
 }
 
 // GetList returns a slice of pointers to WeightDevices.
-func (opt *WeightdeviceOpt) GetList() []*blkiodev.WeightDevice {
+func (opt *WeightdeviceOpt) GetList() []*devices.WeightDevice {
 	return opt.values
 }
 

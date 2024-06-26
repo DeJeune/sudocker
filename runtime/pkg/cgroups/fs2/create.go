@@ -1,4 +1,4 @@
-package cgroups
+package fs2
 
 import (
 	"fmt"
@@ -7,10 +7,11 @@ import (
 	"strings"
 
 	"github.com/DeJeune/sudocker/runtime/config"
+	"github.com/DeJeune/sudocker/runtime/pkg/cgroups"
 )
 
 func supportedControllers() (string, error) {
-	return ReadFile(UnifiedMountpoint, "/cgroup.controllers")
+	return cgroups.ReadFile(UnifiedMountpoint, "/cgroup.controllers")
 }
 
 // needAnyControllers返回 是否使用一些支持的controller
@@ -97,14 +98,14 @@ func CreateCgroupPath(path string, c *config.Cgroup) (Err error) {
 					}
 				}()
 			}
-			cgType, _ := ReadFile(current, cgTypeFile)
+			cgType, _ := cgroups.ReadFile(current, cgTypeFile)
 			cgType = strings.TrimSpace(cgType)
 			switch cgType {
 			case "domain invalid":
 				if containsDomainController(c.Resources) {
 					return fmt.Errorf("cannot enter cgroupv2 %q with domain controllers -- it is in an invalid state", current)
 				} else {
-					_ = WriteFile(current, cgTypeFile, "threaded")
+					_ = cgroups.WriteFile(current, cgTypeFile, "threaded")
 				}
 			case "domain threaded":
 				fallthrough
@@ -117,11 +118,11 @@ func CreateCgroupPath(path string, c *config.Cgroup) (Err error) {
 		}
 
 		if i < len(elements)-1 {
-			if err := WriteFile(current, cgStCtlFile, res); err != nil {
+			if err := cgroups.WriteFile(current, cgStCtlFile, res); err != nil {
 				// try write one by one
 				allCtrs := strings.Split(res, " ")
 				for _, ctr := range allCtrs {
-					_ = WriteFile(current, cgStCtlFile, ctr)
+					_ = cgroups.WriteFile(current, cgStCtlFile, ctr)
 				}
 			}
 			// Some controllers might not be enabled when rootless or containerized,

@@ -1,4 +1,4 @@
-package cgroups
+package fs2
 
 import (
 	"fmt"

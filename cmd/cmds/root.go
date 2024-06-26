@@ -35,6 +35,9 @@ func NewSudockerCommand(sudockerCli *cmd.SudockerCli) *cli.TopLevelCommand {
 		// has an action associated with it:
 		// Run: func(cmd *cobra.Command, args []string) { },
 	}
+	cmd.SetIn(sudockerCli.In())
+	cmd.SetOut(sudockerCli.Out())
+	cmd.SetErr(sudockerCli.Err())
 	opts = cli.SetupRootCommand(cmd)
 	cmd.Flags().BoolP("version", "v", false, "Pring version and quit")
 
