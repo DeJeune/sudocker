@@ -9,6 +9,7 @@ import (
 	"syscall"
 
 	"github.com/pkg/errors"
+	"golang.org/x/sys/unix"
 
 	"github.com/sirupsen/logrus"
 )
@@ -19,7 +20,7 @@ func setupMount() error {
 		return err
 	}
 	logrus.Infof("Current location is %s", pwd)
-	if err = syscall.Mount("", "/", "", syscall.MS_PRIVATE|syscall.MS_REC, ""); err != nil {
+	if err = mount("", "/", "", syscall.MS_PRIVATE|syscall.MS_REC, ""); err != nil {
 		return err
 	}
 	if err = pivotRoot(pwd); err != nil {
@@ -27,13 +28,13 @@ func setupMount() error {
 	}
 	// 挂载/proc文件系统
 	defaultMountFlags := syscall.MS_NOEXEC | syscall.MS_NOSUID | syscall.MS_NODEV
-	if err = syscall.Mount("proc", "/proc", "proc", uintptr(defaultMountFlags), ""); err != nil {
+	if err = mount("proc", "/proc", "proc", uintptr(defaultMountFlags), ""); err != nil {
 		return err
 	}
 	// 由于前面 pivotRoot 切换了 rootfs，因此这里重新 mount 一下 /dev 目录
 	// tmpfs 是基于 件系 使用 RAM、swap 分区来存储。
 	// 不挂载 /dev，会导致容器内部无法访问和使用许多设备，这可能导致系统无法正常工作
-	if err = syscall.Mount("tmpfs", "/dev", "tmpfs", syscall.MS_NOSUID|syscall.MS_STRICTATIME, "mode=755"); err != nil {
+	if err = mount("tmpfs", "/dev", "tmpfs", syscall.MS_NOSUID|syscall.MS_STRICTATIME, "mode=755"); err != nil {
 		return err
 	}
 	return nil
@@ -45,7 +46,7 @@ func pivotRoot(root string) error {
 	  因此，为了使当前root的老root和新root不在同一个文件系统下，这里把root重新mount了一次。
 	  bind mount是把相同的内容换了一个挂载点的挂载方法
 	*/
-	if err := syscall.Mount(root, root, "bind", syscall.MS_BIND|syscall.MS_REC, ""); err != nil {
+	if err := mount(root, root, "bind", unix.MS_BIND|unix.MS_REC, ""); err != nil {
 		return errors.Wrap(err, "mount rootfs to itself")
 	}
 	// 创建 rootfs/.pivot_root 目录用于存储 old_root
@@ -66,7 +67,7 @@ func pivotRoot(root string) error {
 	// 最后再把old_root umount了，即 umount rootfs/.pivot_root
 	// 由于当前已经是在 rootfs 下了，就不能再用上面的rootfs/.pivot_root这个路径了,现在直接用/.pivot_root这个路径即可
 	pivotDir = filepath.Join("/", ".pivot_root")
-	if err := syscall.Unmount(pivotDir, syscall.MNT_DETACH); err != nil {
+	if err := unmount(pivotDir, syscall.MNT_DETACH); err != nil {
 		return errors.WithMessage(err, "unmount pivot_root dir")
 	}
 	// 删除临时文件夹

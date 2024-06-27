@@ -73,6 +73,7 @@ type Config struct {
 }
 
 type HostConfig struct {
+	Binds []string // List of volume bindings for this container
 	*Resources
 }
 

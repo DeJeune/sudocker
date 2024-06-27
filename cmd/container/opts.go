@@ -1,9 +1,11 @@
 package container
 
 import (
+	"path/filepath"
 	"regexp"
 	"strings"
 
+	"github.com/DeJeune/sudocker/cli/compose/loader"
 	"github.com/DeJeune/sudocker/cli/opts"
 	"github.com/DeJeune/sudocker/runtime/config"
 	"github.com/pkg/errors"
@@ -13,11 +15,12 @@ import (
 var deviceCgroupRuleRegexp = regexp.MustCompile(`^[acb] ([0-9]+|\*):([0-9]+|\*) [rwm]{1,3}$`)
 
 type containerOptions struct {
-	attach opts.ListOpts
-	stdin  bool
-	tty    bool
-	Image  string
-	Args   []string
+	attach  opts.ListOpts
+	volumes opts.ListOpts
+	stdin   bool
+	tty     bool
+	Image   string
+	Args    []string
 	// devices            opts.ListOpts
 	// deviceCgroupRules  opts.ListOpts
 	// blkioWeightDevice  opts.WeightdeviceOpt
@@ -50,10 +53,12 @@ type containerOptions struct {
 
 func addFlags(flags *pflag.FlagSet) *containerOptions {
 	copts := &containerOptions{
-		attach: opts.NewListOpts(validateAttach),
+		attach:  opts.NewListOpts(validateAttach),
+		volumes: opts.NewListOpts(nil),
 	}
 	flags.BoolVarP(&copts.stdin, "interactive", "i", false, "Keep STDIN open even if not attached")
 	flags.BoolVarP(&copts.tty, "tty", "t", false, "Allocate a pseudo-TTY")
+	flags.VarP(&copts.volumes, "volume", "v", "Bind mount a volume")
 
 	// Resource management
 	flags.Uint16Var(&copts.blkioWeight, "blkio-weight", 0, "Block IO (relative weight), between 10 and 1000, or 0 to disable (default 0)")
@@ -114,6 +119,38 @@ func parse(flags *pflag.FlagSet, copts *containerOptions) (*containerConfig, err
 		attachStderr = true
 	}
 
+	// 解析-v参数
+	var binds []string
+	volumes := copts.volumes.GetMap()
+	for bind := range copts.volumes.GetMap() {
+		parsed, err := loader.ParseVolume(bind)
+		if err != nil {
+			return nil, err
+		}
+
+		if parsed.Source != "" {
+			toBind := bind
+
+			if parsed.Type == string(config.TypeBind) {
+				if hostPart, targetPath, ok := strings.Cut(bind, ":"); ok {
+					if strings.HasPrefix(hostPart, "."+string(filepath.Separator)) || hostPart == "." {
+						if absHostPart, err := filepath.Abs(hostPart); err == nil {
+							hostPart = absHostPart
+						}
+					}
+					toBind = hostPart + ":" + targetPath
+				}
+			}
+
+			// after creating the bind mount we want to delete it from the copts.volumes values because
+			// we do not want bind mounts being committed to image configs
+			binds = append(binds, toBind)
+			// We should delete from the map (`volumes`) here, as deleting from copts.volumes will not work if
+			// there are duplicates entries.
+			delete(volumes, bind)
+		}
+	}
+
 	var (
 		runCmd []string
 		// entrypoint strslice.StrSlice
@@ -150,6 +187,7 @@ func parse(flags *pflag.FlagSet, copts *containerOptions) (*containerConfig, err
 	}
 
 	hostConfig := &config.HostConfig{
+		Binds:     binds,
 		Resources: &resources,
 	}
 

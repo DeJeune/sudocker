@@ -18,7 +18,6 @@ type runOptions struct {
 	createOptions
 	detach     bool
 	sigProxy   bool
-	name       string
 	detachKeys string
 }
 
@@ -27,11 +26,10 @@ func NewRunCommand(sudockerCli *cmd.SudockerCli) *cobra.Command {
 	var options runOptions
 
 	runCmd := &cobra.Command{
-		Use:     "run [OPTIONS] IMAGE [COMMAND] [ARG...]",
-		Short:   "Create and Run a container from a image",
-		Long:    `Create and Run a container from a image`,
-		Aliases: []string{"sudocker container run"},
-		Args:    cli.RequiresMinArgs(1),
+		Use:   "run [OPTIONS] IMAGE [COMMAND] [ARG...]",
+		Short: "Create and Run a container from a image",
+		Long:  `Create and Run a container from a image`,
+		Args:  cli.RequiresMinArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			fmt.Println("run called")
 			copts.Image = args[0]
@@ -39,6 +37,10 @@ func NewRunCommand(sudockerCli *cmd.SudockerCli) *cobra.Command {
 				copts.Args = args[1:]
 			}
 			return runRun(cmd.Context(), sudockerCli, cmd.Flags(), &options, copts)
+		},
+		Annotations: map[string]string{
+			"category-top": "1",
+			"aliases":      "sudocker container run, sudocker run",
 		},
 	}
 	flags := runCmd.Flags()

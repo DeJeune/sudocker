@@ -24,6 +24,9 @@ func NewContainerCommand(sudockerCli *cmd.SudockerCli) *cobra.Command {
 		NewStopCommand(sudockerCli),
 		NewRestartCommand(sudockerCli),
 		NewRmCommand(sudockerCli),
+		NewCommitCommand(sudockerCli),
+		newListCommand(*sudockerCli),
+		NewLogsCommand(sudockerCli),
 	)
 	return cmd
 }

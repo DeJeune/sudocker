@@ -11,7 +11,7 @@ import (
 	"github.com/DeJeune/sudocker/runtime/config"
 	"github.com/DeJeune/sudocker/runtime/pkg/cgroups/fs"
 	"github.com/DeJeune/sudocker/runtime/pkg/container"
-	"github.com/sirupsen/logrus"
+	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 )
@@ -68,44 +68,56 @@ func runCreate(ctx context.Context, sudockerCli cmd.Cli, flags *pflag.FlagSet, o
 	return nil
 }
 
-func newContainer(ctx context.Context, sudockerCli cmd.Cli, containerConfig *containerConfig, options *createOptions) (containerID string, err error) {
+func newContainer(ctx context.Context, sudockerCli cmd.Cli, containerConfig *containerConfig, options *createOptions) (containerId string, err error) {
+	containerId = container.GenerateContainerID()
 	cg := containerConfig.Config
 	hostConfig := containerConfig.HostConfig
-	parent, writePipe := container.NewParentProcess(ctx, sudockerCli, cg)
+	parent, writePipe := container.NewParentProcess(ctx, sudockerCli, cg, hostConfig, containerId)
 	if err := parent.Start(); err != nil {
-		logrus.Error("Failed to start parent process: ", err)
-		os.Exit(1)
+		return containerId, errors.Errorf("Failed to start parent process: %v", err)
 	}
+
+	if err := container.RecordContainerInfo(parent.Process.Pid, cg.Cmd, options.name, containerId); err != nil {
+		return containerId, err
+	}
+
 	cgroupConfig := &config.Cgroup{
 		Name:      "sudocker-cgroup",
 		Rootless:  false,
 		Resources: hostConfig.Resources,
 	}
+
 	cgroupManager, err := fs.NewManager(cgroupConfig, nil)
 	defer cgroupManager.Destroy()
 	if err != nil {
-		return "1", err
+		return containerId, err
 	}
 	err = cgroupManager.Set(cgroupConfig.Resources)
 	if err != nil {
-		return "1", err
+		return containerId, err
 	}
 	err = cgroupManager.Apply(parent.Process.Pid)
 	if err != nil {
-		return "1", err
+		return containerId, err
 	}
 	sendInitCommand(cg.Cmd, writePipe)
-	if err := parent.Wait(); err != nil {
-		logrus.Error("Parent process failed: ", err)
-		os.Exit(1)
+	if cg.Tty {
+		if err := parent.Wait(); err != nil {
+			return containerId, errors.Errorf("Parent process failed: %v", err)
+		}
+		if err := container.DeleteVolumes("/root/", hostConfig.Binds); err != nil {
+			return containerId, errors.Errorf("Umount volumes failed: %v", err)
+		}
+		if err := container.DeleteContainerInfo(containerId); err != nil {
+			return containerId, errors.Errorf("delete container info failed: %v", err)
+		}
 	}
-	return "1", nil
+	return containerId, nil
 }
 
 // sendInitCommand 通过writePipe将指令发送给子进程
 func sendInitCommand(comArray []string, writePipe *os.File) {
 	command := strings.Join(comArray, " ")
-	logrus.Infof("command all is %s", command)
 	_, _ = writePipe.WriteString(command)
 	_ = writePipe.Close()
 }

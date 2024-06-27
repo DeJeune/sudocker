@@ -10,5 +10,9 @@ func AddCommands(cmd *cobra.Command, sudockerCli *cmd.SudockerCli) {
 	cmd.AddCommand(
 		container.NewContainerCommand(sudockerCli),
 		container.NewInitCommand(sudockerCli),
+		container.NewRunCommand(sudockerCli),
+		container.NewPsCommand(sudockerCli),
+		container.NewLogsCommand(sudockerCli),
+		container.NewCreateCommand(sudockerCli),
 	)
 }

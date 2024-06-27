@@ -5,18 +5,30 @@ import (
 	"fmt"
 	"io"
 	"math"
+	"math/rand"
 	"os"
 	"path/filepath"
 	"runtime"
 	"strconv"
 	"strings"
 	"sync"
+	"time"
 	_ "unsafe" // for go:linkname
 
 	securejoin "github.com/cyphar/filepath-securejoin"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sys/unix"
 )
+
+func RandStringBytes(n int) string {
+	letterBytes := "1234567890"
+	rand.New(rand.NewSource(time.Now().UnixNano()))
+	b := make([]byte, n)
+	for i := range b {
+		b[i] = letterBytes[rand.Intn(len(letterBytes))]
+	}
+	return string(b)
+}
 
 func EnsureProcHandle(fh *os.File) error {
 	var buf unix.Statfs_t
@@ -302,4 +314,15 @@ func UnsafeCloseFrom(minFd int) error {
 		// already closed (in which case, we got what we wanted).
 		_ = unix.Close(fd)
 	})
+}
+
+func PathExists(path string) (bool, error) {
+	_, err := os.Stat(path)
+	if err == nil {
+		return true, nil
+	}
+	if os.IsNotExist(err) {
+		return false, nil
+	}
+	return false, err
 }

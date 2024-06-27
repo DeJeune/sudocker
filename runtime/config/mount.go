@@ -7,6 +7,23 @@ const (
 	EXT_COPYUP = 1 << iota
 )
 
+// Type represents the type of a mount.
+type Type string
+
+// Type constants
+const (
+	// TypeBind is the type for mounting host dir
+	TypeBind Type = "bind"
+	// TypeVolume is the type for remote storage volumes
+	TypeVolume Type = "volume"
+	// TypeTmpfs is the type for mounting tmpfs
+	TypeTmpfs Type = "tmpfs"
+	// TypeNamedPipe is the type for mounting Windows named pipes
+	TypeNamedPipe Type = "npipe"
+	// TypeCluster is the type for Swarm Cluster Volumes.
+	TypeCluster Type = "cluster"
+)
+
 type MountIDMapping struct {
 	// Recursive indicates if the mapping needs to be recursive.
 	Recursive bool `json:"recursive"`
