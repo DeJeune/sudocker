@@ -1,6 +1,7 @@
 package container
 
 import (
+	"fmt"
 	"path/filepath"
 	"regexp"
 	"strings"
@@ -15,12 +16,14 @@ import (
 var deviceCgroupRuleRegexp = regexp.MustCompile(`^[acb] ([0-9]+|\*):([0-9]+|\*) [rwm]{1,3}$`)
 
 type containerOptions struct {
-	attach  opts.ListOpts
-	volumes opts.ListOpts
-	stdin   bool
-	tty     bool
-	Image   string
-	Args    []string
+	hostname   string
+	domainname string
+	attach     opts.ListOpts
+	volumes    opts.ListOpts
+	stdin      bool
+	tty        bool
+	env        opts.ListOpts
+	envFile    opts.ListOpts
 	// devices            opts.ListOpts
 	// deviceCgroupRules  opts.ListOpts
 	// blkioWeightDevice  opts.WeightdeviceOpt
@@ -49,17 +52,33 @@ type containerOptions struct {
 	// ioMaxBandwidth     opts.MemBytes
 	// ioMaxIOps          uint64
 	swappiness int64
+	publish    opts.ListOpts
+	expose     opts.ListOpts
+	netMode    string
+	autoRemove bool
+	Image      string
+	Args       []string
 }
 
 func addFlags(flags *pflag.FlagSet) *containerOptions {
 	copts := &containerOptions{
 		attach:  opts.NewListOpts(validateAttach),
 		volumes: opts.NewListOpts(nil),
+		env:     opts.NewListOpts(opts.ValidateEnv),
+		envFile: opts.NewListOpts(nil),
+		publish: opts.NewListOpts(nil),
+		expose:  opts.NewListOpts(nil),
 	}
+	// General purpose flags
+	flags.VarP(&copts.attach, "attach", "a", "Attach to STDIN, STDOUT or STDERR")
 	flags.BoolVarP(&copts.stdin, "interactive", "i", false, "Keep STDIN open even if not attached")
 	flags.BoolVarP(&copts.tty, "tty", "t", false, "Allocate a pseudo-TTY")
 	flags.VarP(&copts.volumes, "volume", "v", "Bind mount a volume")
-
+	flags.VarP(&copts.env, "env", "e", "Set environment variables")
+	flags.Var(&copts.envFile, "env-file", "Read in a file of environment variables")
+	flags.StringVarP(&copts.hostname, "hostname", "h", "", "Container host name")
+	flags.StringVar(&copts.domainname, "domainname", "", "Container NIS domain name")
+	flags.BoolVar(&copts.autoRemove, "rm", false, "Automatically remove the container and its associated anonymous volumes when it exits")
 	// Resource management
 	flags.Uint16Var(&copts.blkioWeight, "blkio-weight", 0, "Block IO (relative weight), between 10 and 1000, or 0 to disable (default 0)")
 	// flags.Var(&copts.blkioWeightDevice, "blkio-weight-device", "Block IO weight (relative device weight)")
@@ -96,13 +115,17 @@ func addFlags(flags *pflag.FlagSet) *containerOptions {
 	// flags.IntVar(&copts.oomScoreAdj, "oom-score-adj", 0, "Tune host's OOM preferences (-1000 to 1000)")
 	flags.Int64Var(&copts.pidsLimit, "pids-limit", 0, "Tune container pids limit (set -1 for unlimited)")
 
+	flags.VarP(&copts.publish, "publish", "p", "Publish a container's port(s) to the host")
+	flags.StringVar(&copts.netMode, "net", "", "Connect a container to a network")
+	flags.Var(&copts.expose, "expose", "Expose a port or a range of ports")
+
 	return copts
 }
 
 type containerConfig struct {
-	Config     *config.Config
-	HostConfig *config.HostConfig
-	// NetworkingConfig *networktypes.NetworkingConfig
+	Config           *config.Config
+	HostConfig       *config.HostConfig
+	NetworkingConfig *config.NetworkingConfig
 }
 
 func parse(flags *pflag.FlagSet, copts *containerOptions) (*containerConfig, error) {
@@ -111,6 +134,7 @@ func parse(flags *pflag.FlagSet, copts *containerOptions) (*containerConfig, err
 		attachStdout = copts.attach.Get("stdout")
 		attachStderr = copts.attach.Get("stderr")
 	)
+	// -i
 	if copts.stdin {
 		attachStdin = true
 	}
@@ -160,6 +184,15 @@ func parse(flags *pflag.FlagSet, copts *containerOptions) (*containerConfig, err
 		runCmd = copts.Args
 	}
 
+	// 解析 -p
+	publishOpts := copts.publish.GetAll()
+
+	// 解析 -e 参数
+	envVariables, err := opts.ReadKVEnvStrings(copts.envFile.GetAll(), copts.env.GetAll())
+	if err != nil {
+		return nil, err
+	}
+
 	resources := config.Resources{
 		Memory:            copts.memory.Value(),
 		MemoryReservation: copts.memoryReservation.Value(),
@@ -177,6 +210,8 @@ func parse(flags *pflag.FlagSet, copts *containerOptions) (*containerConfig, err
 	}
 
 	generalConfig := &config.Config{
+		Hostname:     copts.hostname,
+		Domainname:   copts.domainname,
 		OpenStdin:    copts.stdin,
 		AttachStdin:  attachStdin,
 		AttachStdout: attachStdout,
@@ -184,16 +219,24 @@ func parse(flags *pflag.FlagSet, copts *containerOptions) (*containerConfig, err
 		Cmd:          runCmd,
 		Image:        copts.Image,
 		Tty:          copts.tty,
+		Env:          envVariables,
 	}
 
 	hostConfig := &config.HostConfig{
-		Binds:     binds,
-		Resources: &resources,
+		Binds:        binds,
+		Resources:    &resources,
+		PortBindings: publishOpts,
+		AutoRemove:   copts.autoRemove,
+	}
+
+	networkingConfig := &config.NetworkingConfig{
+		Endpoints: copts.netMode,
 	}
 
 	return &containerConfig{
-		Config:     generalConfig,
-		HostConfig: hostConfig,
+		Config:           generalConfig,
+		HostConfig:       hostConfig,
+		NetworkingConfig: networkingConfig,
 	}, nil
 }
 
@@ -205,4 +248,48 @@ func validateAttach(val string) (string, error) {
 		}
 	}
 	return val, errors.Errorf("valid streams are STDIN, STDOUT and STDERR")
+}
+
+func convertToStandardNotation(ports []string) ([]string, error) {
+	optsList := []string{}
+	for _, publish := range ports {
+		if strings.Contains(publish, "=") {
+			params := map[string]string{"protocol": "tcp"}
+			for _, param := range strings.Split(publish, ",") {
+				k, v, ok := strings.Cut(param, "=")
+				if !ok || k == "" {
+					return optsList, errors.Errorf("invalid publish opts format (should be name=value but got '%s')", param)
+				}
+				params[k] = v
+			}
+			optsList = append(optsList, fmt.Sprintf("%s:%s/%s", params["published"], params["target"], params["protocol"]))
+		} else {
+			optsList = append(optsList, publish)
+		}
+	}
+	return optsList, nil
+}
+
+func parseNetworkAttachmentOpt(ep opts.NetworkAttachmentOpts) (*config.EndpointSettings, error) {
+	if strings.TrimSpace(ep.Target) == "" {
+		return nil, errors.New("no name set for network")
+	}
+	epConfig := &config.EndpointSettings{}
+	// epConfig.Aliases = append(epConfig.Aliases, ep.Aliases...)
+	// if len(ep.DriverOpts) > 0 {
+	// 	epConfig.DriverOpts = make(map[string]string)
+	// 	epConfig.DriverOpts = ep.DriverOpts
+	// }
+	if len(ep.Links) > 0 {
+		epConfig.Links = ep.Links
+	}
+	if ep.IPv4Address != "" || ep.IPv6Address != "" || len(ep.LinkLocalIPs) > 0 {
+		epConfig.IPAMConfig = &config.EndpointIPAMConfig{
+			IPv4Address:  ep.IPv4Address,
+			IPv6Address:  ep.IPv6Address,
+			LinkLocalIPs: ep.LinkLocalIPs,
+		}
+	}
+	return epConfig, nil
+
 }

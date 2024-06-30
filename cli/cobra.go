@@ -6,7 +6,9 @@ import (
 	"strings"
 
 	cliflags "github.com/DeJeune/sudocker/cli/flag"
+	"github.com/DeJeune/sudocker/cli/term"
 	"github.com/DeJeune/sudocker/cmd"
+	"github.com/morikuni/aec"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
@@ -25,15 +27,22 @@ func setupCommonRootCommand(rootCmd *cobra.Command) *cliflags.ClientOptions {
 	cobra.AddTemplateFunc("operationSubCommands", operationSubCommands)
 	cobra.AddTemplateFunc("managementSubCommands", managementSubCommands)
 	cobra.AddTemplateFunc("wrappedFlagUsages", wrappedFlagUsages)
+	cobra.AddTemplateFunc("hasAdditionalHelp", hasAdditionalHelp)
+	cobra.AddTemplateFunc("additionalHelp", additionalHelp)
 
 	rootCmd.SetUsageTemplate(usageTemplate)
 	rootCmd.SetHelpTemplate(helpTemplate)
 	rootCmd.SetFlagErrorFunc(FlagErrorFunc)
 	rootCmd.SetHelpCommand(helpCommand)
 
-	rootCmd.PersistentFlags().BoolP("help", "h", false, "Print usage")
+	rootCmd.PersistentFlags().BoolP("help", "", false, "Print usage")
 	rootCmd.PersistentFlags().MarkShorthandDeprecated("help", "please use --help")
 	rootCmd.PersistentFlags().Lookup("help").Hidden = true
+	rootCmd.Annotations = map[string]string{
+		"additionalHelp":      "For more help on how to use Docker, head to https://docs.docker.com/go/guides/",
+		"docs.code-delimiter": `"`, // https://github.com/docker/cli-docs-tool/blob/77abede22166eaea4af7335096bdcedd043f5b19/annotation/annotation.go#L20-L22
+	}
+
 	return opts
 }
 
@@ -129,6 +138,22 @@ func VisitAll(root *cobra.Command, fn func(*cobra.Command)) {
 		VisitAll(cmd, fn)
 	}
 	fn(root)
+}
+
+func additionalHelp(cmd *cobra.Command) string {
+	if msg, ok := cmd.Annotations["additionalHelp"]; ok {
+		out := cmd.OutOrStderr()
+		if _, isTerminal := term.GetFdInfo(out); !isTerminal {
+			return msg
+		}
+		style := aec.EmptyBuilder.Bold().ANSI
+		return style.Apply(msg)
+	}
+	return ""
+}
+
+func hasAdditionalHelp(cmd *cobra.Command) bool {
+	return additionalHelp(cmd) != ""
 }
 
 func hasSubCommands(cmd *cobra.Command) bool {

@@ -7,13 +7,16 @@ import (
 )
 
 type Info struct {
-	Pid       string `json:"pid"`
-	Id        string `json:"id"`
-	ImageName string `json:"image_name"`
-	Command   string `json:"command"`
-	Created   string `json:"created_time"`
-	Name      string `json:"container_name"`
-	Status    Status `json:"status"`
+	Pid         string   `json:"pid"`
+	Id          string   `json:"id"`
+	ImageName   string   `json:"image_name"`
+	Command     string   `json:"command"`
+	Created     string   `json:"created_time"`
+	Name        string   `json:"container_name"`
+	Volumes     []string `json:"volumes"`
+	Status      Status   `json:"status"`
+	PortMapping []string `json:"portmapping"`
+	IP          string   `json:"ip"`
 }
 
 // Status is the status of a container.

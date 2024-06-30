@@ -9,6 +9,7 @@ import (
 
 	"github.com/DeJeune/sudocker/cmd"
 	"github.com/DeJeune/sudocker/runtime/config"
+	"github.com/DeJeune/sudocker/runtime/utils"
 	"github.com/sirupsen/logrus"
 )
 
@@ -29,12 +30,12 @@ func NewParentProcess(ctx context.Context, cli cmd.Cli, config *config.Config, h
 		cmd.Stderr = cli.Err()
 	} else {
 		// 对于后台运行容器，将 stdout、stderr 重定向到日志文件中，便于后续查看
-		dirPath := fmt.Sprintf(InfoLocFormat, containerId)
-		if err := os.MkdirAll(dirPath, 0o777); err != nil {
+		dirPath := fmt.Sprintf(utils.InfoLocFormat, containerId)
+		if err := os.MkdirAll(dirPath, 0o622); err != nil {
 			logrus.Errorf("NewParentProcess mkdir %s error %v", dirPath, err)
 			return nil, nil
 		}
-		stdLogFilePath := dirPath + LogFile
+		stdLogFilePath := dirPath + utils.GetLogfile(containerId)
 		stdLogFile, err := os.Create(stdLogFilePath)
 		if err != nil {
 			logrus.Errorf("NewParentProcess create file %s error %v", stdLogFilePath, err)
@@ -44,12 +45,11 @@ func NewParentProcess(ctx context.Context, cli cmd.Cli, config *config.Config, h
 		cmd.Stderr = stdLogFile
 	}
 	cmd.ExtraFiles = []*os.File{readPipe}
-	mntURL := "/root/merged/"
-	rootURL := "/root/"
-	if err := NewStorageDriver(rootURL, mntURL, hostConfig.Binds); err != nil {
+	if err := NewStorageDriver(containerId, config.Image, hostConfig.Binds); err != nil {
 		logrus.Errorf("mount storage driver failed: %v", err)
 		return nil, nil
 	}
-	cmd.Dir = mntURL
+	cmd.Dir = utils.GetMerged(containerId)
+	cmd.Env = append(os.Environ(), config.Env...)
 	return cmd, writePipe
 }

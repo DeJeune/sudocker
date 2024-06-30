@@ -8,7 +8,7 @@ import (
 
 	"github.com/DeJeune/sudocker/cli"
 	"github.com/DeJeune/sudocker/cmd"
-	"github.com/DeJeune/sudocker/runtime/pkg/container"
+	"github.com/DeJeune/sudocker/runtime/utils"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )
@@ -21,7 +21,7 @@ type logsOptions struct {
 	details    bool
 	tail       string
 
-	container string
+	containerId string
 }
 
 func NewLogsCommand(sudockerCli *cmd.SudockerCli) *cobra.Command {
@@ -32,7 +32,7 @@ func NewLogsCommand(sudockerCli *cmd.SudockerCli) *cobra.Command {
 		Short: "Fetch the logs of a container",
 		Args:  cli.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			opts.container = args[0]
+			opts.containerId = args[0]
 			return runLogs(cmd.Context(), sudockerCli, &opts)
 		},
 		Annotations: map[string]string{
@@ -52,7 +52,7 @@ func NewLogsCommand(sudockerCli *cmd.SudockerCli) *cobra.Command {
 }
 
 func runLogs(ctx context.Context, sudockerCli *cmd.SudockerCli, opts *logsOptions) error {
-	logFileLocation := fmt.Sprintf(container.InfoLocFormat, opts.container) + container.LogFile
+	logFileLocation := fmt.Sprintf(utils.InfoLocFormat, opts.containerId) + utils.GetLogfile(opts.containerId)
 	file, err := os.Open(logFileLocation)
 	if err != nil {
 		return errors.Errorf("Log container open file %s error %v", logFileLocation, err)

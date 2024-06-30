@@ -62,6 +62,8 @@ type Capabilities struct {
 }
 
 type Config struct {
+	Hostname     string
+	Domainname   string
 	OpenStdin    bool
 	StdinOnce    bool
 	AttachStdin  bool
@@ -70,11 +72,17 @@ type Config struct {
 	Tty          bool
 	Cmd          []string
 	Image        string
+	Env          []string
 }
+
+type NetworkMode string
 
 type HostConfig struct {
 	Binds []string // List of volume bindings for this container
 	*Resources
+	AutoRemove   bool
+	NetworkMode  NetworkMode
+	PortBindings []string
 }
 
 // IDMap represents UID/GID Mappings for User Namespaces.

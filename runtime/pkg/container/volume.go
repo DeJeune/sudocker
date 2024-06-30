@@ -30,34 +30,7 @@ func mountVolume(mntPath, hostPath, containerPath string) error {
 	return nil
 }
 
-func DeleteVolumes(rootPath string, volumes []string) error {
-	mntPath := path.Join(rootPath, "merged")
-
-	// 如果指定了volume则需要umount volume
-	// NOTE: 一定要要先 umount volume ，然后再删除目录，否则由于 bind mount 存在，删除临时目录会导致 volume 目录中的数据丢失。
-	if len(volumes) != 0 {
-		for _, volume := range volumes {
-			_, containerPath, err := volumeExtract(volume)
-			if err != nil {
-				return errors.Errorf("extract volume failed，maybe volume parameter input is not correct，detail:%v", err)
-
-			}
-			if err := unmountVolume(mntPath, containerPath); err != nil {
-				return err
-			}
-		}
-	}
-
-	if err := umountOverlayFS(mntPath); err != nil {
-		return err
-	}
-	if err := deleteDirs(rootPath); err != nil {
-		return err
-	}
-	return nil
-}
-
-func unmountVolume(mntPath, containerPath string) error {
+func umountVolume(mntPath, containerPath string) error {
 	// mntPath 为容器在宿主机上的挂载点，例如 /root/merged
 	// containerPath 为 volume 在容器中对应的目录，例如 /root/tmp
 	// containerPathInHost 则是容器中目录在宿主机上的具体位置，例如 /root/merged/root/tmp

@@ -326,3 +326,30 @@ func PathExists(path string) (bool, error) {
 	}
 	return false, err
 }
+
+func GetRoot(containerId string) string { return RootPath + containerId }
+
+func GetImage(imageName string) string { return fmt.Sprintf("%s%s.tar", ImagePath, imageName) }
+
+func GetLower(containerId string) string {
+	return fmt.Sprintf(lowerDirFormat, containerId)
+}
+
+func GetUpper(containerId string) string {
+	return fmt.Sprintf(upperDirFormat, containerId)
+}
+
+func GetWorker(containerId string) string {
+	return fmt.Sprintf(workDirFormat, containerId)
+}
+
+func GetMerged(containerId string) string { return fmt.Sprintf(mergedDirFormat, containerId) }
+
+func GetOverlayFSDirs(lower, upper, worker string) string {
+	return fmt.Sprintf(overlayFSFormat, lower, upper, worker)
+}
+
+// GetLogfile build logfile name by containerId
+func GetLogfile(containerId string) string {
+	return fmt.Sprintf(LogFile, containerId)
+}

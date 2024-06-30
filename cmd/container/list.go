@@ -11,6 +11,7 @@ import (
 	"github.com/DeJeune/sudocker/cli"
 	"github.com/DeJeune/sudocker/cmd"
 	"github.com/DeJeune/sudocker/runtime/pkg/container"
+	"github.com/DeJeune/sudocker/runtime/utils"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -65,9 +66,9 @@ func newListCommand(sudockerCli cmd.SudockerCli) *cobra.Command {
 
 func runPs(ctx context.Context, sudockerCli cmd.Cli, options *psOptions) error {
 	// 读取存放容器信息目录下的所有文件
-	files, err := os.ReadDir(container.InfoLoc)
+	files, err := os.ReadDir(utils.InfoLoc)
 	if err != nil {
-		return errors.Errorf("read dir %s error %v", container.InfoLoc, err)
+		return errors.Errorf("read dir %s error %v", utils.InfoLoc, err)
 	}
 	containers := make([]*container.Info, 0, len(files))
 	for _, file := range files {
@@ -105,8 +106,8 @@ func runPs(ctx context.Context, sudockerCli cmd.Cli, options *psOptions) error {
 
 func getContainerInfo(file os.DirEntry) (*container.Info, error) {
 	// 根据文件名拼接出完整路径
-	configFileDir := fmt.Sprintf(container.InfoLocFormat, file.Name())
-	configFileDir = path.Join(configFileDir, container.ConfigName)
+	configFileDir := fmt.Sprintf(utils.InfoLocFormat, file.Name())
+	configFileDir = path.Join(configFileDir, utils.ConfigName)
 	// 读取容器配置文件
 	content, err := os.ReadFile(configFileDir)
 	if err != nil {
